@@ -10,7 +10,7 @@ import axios from 'axios'
 import VueAxios from 'vue-axios'
 
 Vue.use(VueAxios, axios)
-Vue.axios.defaults.baseURL = "https://git.heroku.com/immense-basin-09197.git"
+Vue.axios.defaults.baseURL = "https://immense-basin-09197.herokuapp.com/"
 
 
 Vue.use(BootstrapVue)

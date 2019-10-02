@@ -35,8 +35,8 @@ export default {
   data () {
     return {
       form: {
-        username: 'niko',
-        password: 'hello'
+        username: '',
+        password: ''
       }
     }
   },
@@ -45,7 +45,7 @@ export default {
       return false
     },
     signUp () {
-      this.axios.post('http://127.0.0.1:3000/sign-up', this.form).then(response => {
+      this.axios.post('/sign-up', this.form).then(response => {
         if(response.data.error) {
           alert('Registration error')
         } else {
