@@ -1,19 +1,20 @@
 <template>
   <div>
     <h1>Projects</h1>
-
     <b-card
       :title="project.name"
       v-for="project in projects"
       v-bind:key="project.id"
       class="project"
     >
-      
+    
       <b-card-text>
+        <label-edit v-bind:text="project.name" placeholder="Enter text value" v-on:text-updated-blur="meth2" v-on:text-updated-enter="meth1(project)"></label-edit>
         <p v-if="project.tasks.length == 0">no tasks</p>
         <b-table-simple v-else hover small caption-top responsive>
           <b-thead head-variant="dark">
             <b-tr>
+              <b-th>Move</b-th>
               <b-th>Status</b-th>
               <b-th>Name</b-th>
               <b-th>Deadline</b-th>
@@ -22,6 +23,10 @@
           </b-thead>
           <b-tbody>
             <b-tr v-for="task in project.tasks" v-bind:key="task.id">
+              <b-td>
+                <a v-if="canMoveHigher(project, task)" @click="moveHigher(project, task)"><v-icon name="arrow-up" ></v-icon></a>
+                <a v-if="canMoveLower(project, task)" @click="moveLower(project, task)"><v-icon name="arrow-down" ></v-icon></a>
+              </b-td>
               <b-td>
                 <b-form-checkbox
                   v-model="task.done"
@@ -46,9 +51,10 @@
                 <span v-else>{{task.deadline}}</span>
               </b-td>
               <b-td>
-                <b-button v-if="task.edit" variant="link" size="sm" @click="updateTask(project, task)">save</b-button>
-                <b-button v-else variant="link" size="sm" @click="task.edit = true">edit</b-button>
-                <b-button variant="link" size="sm" @click="removeTask(project, task)">remove</b-button>
+                <b-button v-if="task.edit" variant="link" size="sm" @click="updateTask(project, task)"><v-icon name="save" ></v-icon></b-button>
+                <b-button v-else variant="link" size="sm" @click="task.edit = true"><v-icon name="edit-2" ></v-icon></b-button>
+                <b-button variant="link" size="sm" @click="removeTask(project, task)"><v-icon name="trash-2" ></v-icon></b-button>
+                
               </b-td>
             </b-tr>
           </b-tbody>
@@ -79,17 +85,20 @@
   </div>
 </template>
 
+
 <script>
 // @ is an alias to /src
 import _ from 'lodash'
 import DatePick from 'vue-date-pick';
 import 'vue-date-pick/dist/vueDatePick.css';
+import LabelEdit from 'label-edit';
 
 export default {
-  components: {DatePick},
+  components: {DatePick, LabelEdit},
   name: 'projects',
   data () {
     return {
+      openProject: {},
       projects: [],
       date: '2019-01-01'
     }
@@ -98,6 +107,59 @@ export default {
     this.refresh()
   },
   methods: {
+    canMoveHigher(project, task) {
+      return project.tasks[0].id != task.id
+    },
+    canMoveLower(project, task) {
+      return _.last(project.tasks).id != task.id
+    },
+    moveHigher(project, task) {
+      const path = `/projects/${project.id}/tasks/${task.id}/move_higher`
+      const params = {
+        token: localStorage.token
+      }
+      this.axios.put(path, params).then(response => {
+        if (response.data.id) {
+          this.refresh();
+        } else {
+          console.error('cannot move task: ' + response)
+        }
+      })
+    },
+    moveLower(project, task) {
+      const path = `/projects/${project.id}/tasks/${task.id}/move_lower`
+      const params = {
+        token: localStorage.token
+      }
+      this.axios.put(path, params).then(response => {
+        if (response.data.id) {
+          this.refresh();
+        } else {
+          console.error('cannot move task: ' + response)
+        }
+      })
+    },
+    meth1 (project) {
+      this.openProject = project
+    },
+
+    meth2(text) {
+      if (!this.openProject.id) {
+        return
+      }
+      this.openProject.name = text
+      // debugger
+
+      const project = this.openProject
+      const params = {
+        token: localStorage.token,
+        project: project
+      }
+      this.axios.put('/projects/' + project.id, params).then(response => {
+        console.log(response)
+      })
+
+    },
     fetchTasks(project) {
       if (_.isEmpty(project)) {
         return
@@ -105,7 +167,7 @@ export default {
       const params = {
         token: localStorage.token
       }
-      console.info('pro:', project)
+
       this.axios.get('/projects/' + project.id + '/tasks', { params: params }).then(response => {
         project.tasks = _.map(response.data, (task) => {
           return {...task, edit: false}
@@ -127,11 +189,9 @@ export default {
       })
     },
     removeProject(project) {
-      console.info(project)
       const params = {
         token: localStorage.token
       }
-      console.info('/projects/' + project.id)
       this.axios.delete('/projects/' + project.id, { params: params }).then(response => {
         this.refresh()
       })
@@ -184,5 +244,9 @@ export default {
 <style lang="css">
 .project {
   margin-top: 20px;
+}
+.icon {
+  width: 16px;
+  cursor: pointer;
 }
 </style>
